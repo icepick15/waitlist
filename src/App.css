@@ -36,3 +36,267 @@
     transform: rotate(360deg);
   }
 }
+
+/* Custom styles for the waitlist app */
+.date-input-container {
+  position: relative;
+}
+
+.date-input-container input[type="date"]::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  right: 0;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.date-input-container input[type="date"]:not(:focus):not(:valid) + .date-placeholder {
+  display: block;
+}
+
+.date-input-container input[type="date"]:focus + .date-placeholder,
+.date-input-container input[type="date"]:valid + .date-placeholder {
+  display: none;
+}
+
+.date-placeholder {
+  position: absolute;
+  left: 12px;
+  top: 8px;
+  color: #9CA3AF;
+  pointer-events: none;
+  font-size: 14px;
+}
+
+/* Table hover effects */
+.table-row:hover {
+  background-color: #f9fafb;
+}
+
+/* Custom scrollbar for table */
+.table-container::-webkit-scrollbar {
+  height: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+/* Toast animations */
+@keyframes slide-in {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* Responsive design */
+@media (max-width: 1280px) {
+  .sidebar-mobile {
+    transform: translateX(-100%);
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  .sidebar-mobile.open {
+    transform: translateX(0);
+  }
+  
+  .table-container {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .navigation-tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  
+  .navigation-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Mobile table improvements */
+  .table-container table {
+    min-width: 800px; /* Ensure minimum width for proper column spacing */
+  }
+  
+  /* Better mobile pagination */
+  .pagination-mobile {
+    flex-direction: column;
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  /* Extra small screens */
+  .table-container td,
+  .table-container th {
+    padding: 8px 12px !important;
+    font-size: 12px !important;
+  }
+  
+  .pagination-mobile {
+    padding: 1rem 0.5rem;
+  }
+}
+
+/* Improve scrollbar styling for all screen sizes */
+.table-container {
+  scrollbar-width: thin;
+  scrollbar-color: #CBD5E0 #F7FAFC;
+}
+
+.table-container::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.table-container::-webkit-scrollbar-track {
+  background: #F7FAFC;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb {
+  background: #CBD5E0;
+  border-radius: 4px;
+}
+
+.table-container::-webkit-scrollbar-thumb:hover {
+  background: #A0AEC0;
+}
+
+/* Sticky header improvements */
+.table-container thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #F9FAFB;
+  box-shadow: 0 1px 0 0 #E5E7EB;
+}
+
+/* Full height layout fixes */
+.full-height-layout {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.full-height-layout .main-content {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.full-height-layout .sidebar {
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Flexbox improvements for equal heights */
+.equal-height-container {
+  display: flex;
+  min-height: 0; /* Important for flexbox */
+}
+
+.equal-height-container > * {
+  flex: 1;
+  min-height: 0; /* Important for flexbox */
+}
+
+/* Ensure proper height usage for large screens */
+@media (min-width: 1280px) {
+  .waitlist-container {
+    height: calc(100vh - 4rem); /* Account for header */
+  }
+  
+  .table-full-height {
+    height: calc(100vh - 12rem); /* Account for header and padding */
+  }
+}
+
+/* Large screen optimizations */
+@media (min-width: 1024px) {
+  .main-content-large {
+    min-height: calc(100vh - 4rem);
+  }
+  
+  .table-container-large {
+    max-height: calc(100vh - 16rem);
+  }
+}
+
+/* Better mobile modal */
+@media (max-width: 640px) {
+  .modal-content {
+    margin: 1rem;
+    max-height: calc(100vh - 2rem);
+  }
+}
+
+/* Hover states and transitions */
+.btn-hover {
+  transition: all 0.2s ease-in-out;
+}
+
+.btn-hover:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.card-hover {
+  transition: all 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Focus styles for accessibility */
+.focus-ring:focus {
+  outline: 2px solid #3B82F6;
+  outline-offset: 2px;
+}
+
+/* Checkbox custom styles */
+.checkbox-custom {
+  appearance: none;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #D1D5DB;
+  border-radius: 3px;
+  background-color: white;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease-in-out;
+}
+
+.checkbox-custom:checked {
+  background-color: #3B82F6;
+  border-color: #3B82F6;
+}
+
+.checkbox-custom:checked::after {
+  content: '✓';
+  position: absolute;
+  top: -2px;
+  left: 1px;
+  color: white;
+  font-size: 12px;
+  font-weight: bold;
+}
