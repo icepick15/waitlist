@@ -1,23 +1,90 @@
-import React, { useState, useMemo, useEffect } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import DataTable from './components/DataTable/DataTable';
 import SearchBar from './components/SearchBar/SearchBar';
 import Modal from './components/ui/Modal';
 import Toast from './components/ui/Toast';
 import { mockServiceProviders } from './data/mockData';
-import { Bell, MessageSquare, User, Menu } from 'lucide-react';
+import {
+  BadgeCheck,
+  Bell,
+  BriefcaseBusiness,
+  CalendarDays,
+  Clock3,
+  LayoutGrid,
+  Mail,
+  MapPin,
+  Menu,
+  MessageSquare,
+  NotebookPen,
+  Phone,
+  SlidersHorizontal,
+  User,
+  UserCheck,
+  UserX,
+  X,
+} from 'lucide-react';
+
+const navigationItems = [
+  'Service Dashboard',
+  'Finance Forecast',
+  'Human Resources',
+  'Users',
+  'Compliances & Verification',
+];
+
+const audienceTabs = [
+  { id: 'Service Provider', label: 'Service Providers' },
+  { id: 'Customer', label: 'Customers' },
+];
+
+const createDefaultFilters = () => ({
+  postcode: '',
+  registrationStatus: {
+    onboarded: false,
+    rejected: false,
+  },
+  dateRange: {
+    start: '',
+    end: '',
+  },
+  vendorType: {
+    independent: false,
+    company: false,
+  },
+  serviceOffering: {
+    housekeeping: false,
+    windowCleaning: false,
+    carValet: false,
+  },
+});
+
+const getStatusClassName = (status) => {
+  if (status === 'Onboarded') {
+    return 'status-pill status-pill--success';
+  }
+
+  if (status === 'Rejected') {
+    return 'status-pill status-pill--danger';
+  }
+
+  return 'status-pill status-pill--neutral';
+};
 
 function App() {
+  const [records, setRecords] = useState(mockServiceProviders);
   const [globalFilter, setGlobalFilter] = useState('');
+  const [filters, setFilters] = useState(createDefaultFilters);
+  const [activeAudience, setActiveAudience] = useState('Service Provider');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [draftNote, setDraftNote] = useState('');
   const [toast, setToast] = useState({ isVisible: false, message: '', type: 'success' });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [notificationDropdown, setNotificationDropdown] = useState(false);
   const [chatDropdown, setChatDropdown] = useState(false);
   const [profileDropdown, setProfileDropdown] = useState(false);
-  
-  // Close dropdowns when clicking outside
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest('.dropdown-container')) {
@@ -38,78 +105,63 @@ function App() {
 
     document.addEventListener('mousedown', handleClickOutside);
     document.addEventListener('keydown', handleKeyDown);
-    
+
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
-  
-  // Filter states
-  const [filters, setFilters] = useState({
-    postcode: '',
-    registrationStatus: {
-      onboarded: false,
-      rejected: false
-    },
-    dateRange: {
-      start: '',
-      end: ''
-    },
-    vendorType: {
-      independent: false,
-      company: false
-    },
-    serviceOffering: {
-      housekeeping: false,
-      windowCleaning: false,
-      carValet: false
-    }
-  });
 
-  // Apply filters to data
+  const audienceCounts = useMemo(() => {
+    return audienceTabs.reduce((counts, tab) => {
+      counts[tab.id] = records.filter((record) => record.audienceType === tab.id).length;
+      return counts;
+    }, {});
+  }, [records]);
+
+  const activeAudienceRecords = useMemo(() => {
+    return records.filter((record) => record.audienceType === activeAudience);
+  }, [records, activeAudience]);
+
   const filteredData = useMemo(() => {
-    let filtered = mockServiceProviders;
+    let filtered = activeAudienceRecords;
 
-    // Apply postcode filter
     if (filters.postcode) {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter((item) =>
         item.postcode.toLowerCase().includes(filters.postcode.toLowerCase())
       );
     }
 
-    // Apply registration status filter
     const statusFilters = [];
     if (filters.registrationStatus.onboarded) statusFilters.push('Onboarded');
     if (filters.registrationStatus.rejected) statusFilters.push('Rejected');
     if (statusFilters.length > 0) {
-      filtered = filtered.filter(item => statusFilters.includes(item.status));
+      filtered = filtered.filter((item) => statusFilters.includes(item.status));
     }
 
-    // Apply vendor type filter
     const vendorFilters = [];
     if (filters.vendorType.independent) vendorFilters.push('Independent');
     if (filters.vendorType.company) vendorFilters.push('Company');
     if (vendorFilters.length > 0) {
-      filtered = filtered.filter(item => vendorFilters.includes(item.vendorType));
+      filtered = filtered.filter((item) => vendorFilters.includes(item.vendorType));
     }
 
-    // Apply service offering filter
     const serviceFilters = [];
     if (filters.serviceOffering.housekeeping) serviceFilters.push('Housekeeping');
     if (filters.serviceOffering.windowCleaning) serviceFilters.push('Window Cleaning');
     if (filters.serviceOffering.carValet) serviceFilters.push('Car Valet');
     if (serviceFilters.length > 0) {
-      filtered = filtered.filter(item => serviceFilters.includes(item.serviceOffering));
+      filtered = filtered.filter((item) =>
+        item.serviceOfferings.some((service) => serviceFilters.includes(service))
+      );
     }
 
-    // Apply date range filter
     if (filters.dateRange.start || filters.dateRange.end) {
-      filtered = filtered.filter(item => {
-        const itemDate = new Date(item.signupDate);
+      filtered = filtered.filter((item) => {
+        const itemDate = new Date(item.signupDateISO);
         const startDate = filters.dateRange.start ? new Date(filters.dateRange.start) : null;
         const endDate = filters.dateRange.end ? new Date(filters.dateRange.end) : null;
-        
+
         if (startDate && itemDate < startDate) return false;
         if (endDate && itemDate > endDate) return false;
         return true;
@@ -117,475 +169,643 @@ function App() {
     }
 
     return filtered;
-  }, [filters]);
+  }, [activeAudienceRecords, filters]);
 
-  const handleFilterChange = (filterType, value) => {
-    setFilters(prev => {
-      const newFilters = { ...prev };
-      
-      if (filterType.includes('.')) {
-        const [parent, child] = filterType.split('.');
-        newFilters[parent] = { ...newFilters[parent], [child]: value };
-      } else {
-        newFilters[filterType] = value;
-      }
-      
-      return newFilters;
-    });
-  };
+  const insightCards = useMemo(() => {
+    const pendingCount = filteredData.filter((item) => item.status === '-').length;
+    const onboardedCount = filteredData.filter((item) => item.status === 'Onboarded').length;
+    const rejectedCount = filteredData.filter((item) => item.status === 'Rejected').length;
 
-  const clearFilters = () => {
-    setFilters({
-      postcode: '',
-      registrationStatus: {
-        onboarded: false,
-        rejected: false
+    return [
+      {
+        label: 'Visible records',
+        value: filteredData.length,
+        caption: `${activeAudienceRecords.length} total in ${activeAudience.toLowerCase()} queue`,
+        icon: LayoutGrid,
+        tone: 'blue',
       },
-      dateRange: {
-        start: '',
-        end: ''
+      {
+        label: 'Awaiting review',
+        value: pendingCount,
+        caption: 'Invited or incomplete accounts',
+        icon: Clock3,
+        tone: 'amber',
       },
-      vendorType: {
-        independent: false,
-        company: false
+      {
+        label: 'Onboarded',
+        value: onboardedCount,
+        caption: 'Ready for activation',
+        icon: UserCheck,
+        tone: 'green',
       },
-      serviceOffering: {
-        housekeeping: false,
-        windowCleaning: false,
-        carValet: false
-      }
-    });
-    setGlobalFilter('');
-    showToast('Filters cleared successfully!', 'success');
-  };
+      {
+        label: 'Rejected',
+        value: rejectedCount,
+        caption: 'Flagged or declined entries',
+        icon: UserX,
+        tone: 'rose',
+      },
+    ];
+  }, [activeAudience, activeAudienceRecords.length, filteredData]);
 
-  const handleEdit = (userData) => {
-    setSelectedUser(userData);
-    setIsModalOpen(true);
-  };
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+
+    if (filters.postcode) count += 1;
+    if (filters.dateRange.start) count += 1;
+    if (filters.dateRange.end) count += 1;
+    if (globalFilter) count += 1;
+
+    count += Object.values(filters.registrationStatus).filter(Boolean).length;
+    count += Object.values(filters.vendorType).filter(Boolean).length;
+    count += Object.values(filters.serviceOffering).filter(Boolean).length;
+
+    return count;
+  }, [filters, globalFilter]);
 
   const showToast = (message, type = 'success') => {
     setToast({ isVisible: true, message, type });
   };
 
   const closeToast = () => {
-    setToast({ ...toast, isVisible: false });
+    setToast((currentToast) => ({ ...currentToast, isVisible: false }));
   };
 
-  const toggleSidebar = () => {
-    setIsSidebarOpen(!isSidebarOpen);
+  const handleFilterChange = (filterType, value) => {
+    setFilters((previousFilters) => {
+      const nextFilters = { ...previousFilters };
+
+      if (filterType.includes('.')) {
+        const [parent, child] = filterType.split('.');
+        nextFilters[parent] = { ...nextFilters[parent], [child]: value };
+      } else {
+        nextFilters[filterType] = value;
+      }
+
+      return nextFilters;
+    });
+  };
+
+  const clearFilters = () => {
+    setFilters(createDefaultFilters());
+    setGlobalFilter('');
+    showToast('Filters cleared. Showing the full queue again.');
+  };
+
+  const applyFilters = () => {
+    setIsSidebarOpen(false);
+    showToast('Filters applied to the current waitlist view.');
+  };
+
+  const openUserModal = (userData) => {
+    setSelectedUser(userData);
+    setDraftNote(userData.internalNotes || '');
+    setIsModalOpen(true);
+  };
+
+  const closeUserModal = () => {
+    setIsModalOpen(false);
+    setSelectedUser(null);
+    setDraftNote('');
+  };
+
+  const updateSelectedRecord = (updates, message, type = 'success') => {
+    if (!selectedUser) {
+      return;
+    }
+
+    setRecords((currentRecords) =>
+      currentRecords.map((record) =>
+        record.id === selectedUser.id ? { ...record, ...updates } : record
+      )
+    );
+
+    setSelectedUser((currentUser) => (currentUser ? { ...currentUser, ...updates } : currentUser));
+
+    if (message) {
+      showToast(message, type);
+    }
+  };
+
+  const saveNote = () => {
+    updateSelectedRecord({ internalNotes: draftNote }, 'Internal note saved to this mock profile.');
+  };
+
+  const updateStatus = (nextStatus) => {
+    if (!selectedUser) {
+      return;
+    }
+
+    const invitationState = nextStatus === '-' ? 'Invited' : nextStatus;
+    updateSelectedRecord(
+      { status: nextStatus, invitationState },
+      `${selectedUser.companyName} marked as ${invitationState.toLowerCase()}.`
+    );
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* Toast Notifications */}
-      <Toast 
+    <div className="waitlist-app">
+      <Toast
         message={toast.message}
         type={toast.type}
         isVisible={toast.isVisible}
         onClose={closeToast}
       />
 
-      {/* Edit Modal */}
-      <Modal 
+      <Modal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        title="Edit Service Provider"
+        onClose={closeUserModal}
+        title={
+          <span className="modal-title-inline">
+            <BadgeCheck size={18} />
+            User Details
+          </span>
+        }
+        panelClassName="app-modal__panel--wide"
       >
         {selectedUser && (
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-              <input 
-                type="email" 
-                defaultValue={selectedUser.email}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              />
+          <div className="user-modal">
+            <section className="user-modal__hero">
+              <div className="user-modal__avatar">{selectedUser.initials}</div>
+              <div className="user-modal__headline">
+                <div className="user-modal__eyebrow">{selectedUser.contactName}</div>
+                <h2>{selectedUser.companyName}</h2>
+                <p>{selectedUser.email}</p>
+              </div>
+              <div className="user-modal__chips">
+                <span className="badge-chip badge-chip--slate">{selectedUser.audienceType}</span>
+                <span className={getStatusClassName(selectedUser.status)}>
+                  {selectedUser.invitationState}
+                </span>
+              </div>
+            </section>
+
+            <section className="user-modal__stats">
+              <article className="mini-stat">
+                <Mail size={16} />
+                <div>
+                  <span>Email</span>
+                  <strong>{selectedUser.email}</strong>
+                </div>
+              </article>
+              <article className="mini-stat">
+                <Phone size={16} />
+                <div>
+                  <span>Phone</span>
+                  <strong>{selectedUser.phoneNumber}</strong>
+                </div>
+              </article>
+              <article className="mini-stat">
+                <MapPin size={16} />
+                <div>
+                  <span>Location</span>
+                  <strong>{selectedUser.location}</strong>
+                </div>
+              </article>
+              <article className="mini-stat">
+                <CalendarDays size={16} />
+                <div>
+                  <span>Signed up</span>
+                  <strong>{selectedUser.signupDate}</strong>
+                </div>
+              </article>
+            </section>
+
+            <div className="user-modal__grid">
+              <section className="user-modal__section">
+                <header>
+                  <h3>Account Snapshot</h3>
+                  <p>Summary data from the current mock waitlist record.</p>
+                </header>
+                <div className="detail-grid">
+                  <div>
+                    <span>Customer Type</span>
+                    <strong>{selectedUser.customerType}</strong>
+                  </div>
+                  <div>
+                    <span>Vendor Type</span>
+                    <strong>{selectedUser.vendorType}</strong>
+                  </div>
+                  <div>
+                    <span>Postcode</span>
+                    <strong>{selectedUser.postcode}</strong>
+                  </div>
+                  <div>
+                    <span>Primary Service</span>
+                    <strong>{selectedUser.serviceOffering}</strong>
+                  </div>
+                </div>
+              </section>
+
+              <section className="user-modal__section">
+                <header>
+                  <h3>Service Coverage</h3>
+                  <p>Offerings currently attached to this record.</p>
+                </header>
+                <div className="service-chip-list">
+                  {selectedUser.serviceOfferings.map((service) => (
+                    <span key={service} className="badge-chip badge-chip--blue">
+                      <BriefcaseBusiness size={14} />
+                      {service}
+                    </span>
+                  ))}
+                </div>
+              </section>
             </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Phone Number</label>
-              <input 
-                type="tel" 
-                defaultValue={selectedUser.phoneNumber}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+
+            <section className="user-modal__section">
+              <header className="user-modal__section-header">
+                <div>
+                  <h3>Internal Notes</h3>
+                  <p>Mock only for now. Notes stay in local state until refresh.</p>
+                </div>
+                <button className="text-link-button" onClick={saveNote}>
+                  <NotebookPen size={16} />
+                  Save note
+                </button>
+              </header>
+              <textarea
+                value={draftNote}
+                onChange={(event) => setDraftNote(event.target.value)}
+                placeholder="Add context for onboarding, rejection reasons, or follow-up actions."
+                className="user-modal__textarea"
               />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Postcode</label>
-              <input 
-                type="text" 
-                defaultValue={selectedUser.postcode}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
-              />
-            </div>
-            <div className="flex space-x-3 pt-4">
-              <button 
-                onClick={() => {
-                  setIsModalOpen(false);
-                  showToast('User updated successfully!', 'success');
-                }}
-                className="flex-1 bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors btn-hover"
+            </section>
+
+            <footer className="user-modal__footer">
+              <button
+                className="action-button action-button--ghost"
+                onClick={() => updateStatus('-')}
               >
-                Save Changes
+                Mark invited
               </button>
-              <button 
-                onClick={() => setIsModalOpen(false)}
-                className="flex-1 border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50 transition-colors"
+              <button
+                className="action-button action-button--danger"
+                onClick={() => updateStatus('Rejected')}
               >
-                Cancel
+                Reject
               </button>
-            </div>
+              <button
+                className="action-button action-button--primary"
+                onClick={() => updateStatus('Onboarded')}
+              >
+                Onboard
+              </button>
+            </footer>
           </div>
         )}
       </Modal>
 
-      {/* Top Navigation Bar */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="flex items-center justify-between px-4 md:px-6 py-3">
-          {/* Left side - Logo and Navigation */}
-          <div className="flex items-center space-x-4 md:space-x-8">
-            {/* Mobile menu button */}
-            <button 
-              onClick={toggleSidebar}
-              className="xl:hidden p-2 text-gray-600 hover:text-gray-900 transition-colors"
-            >
-              <Menu size={20} />
-            </button>
-            
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
-                <span className="text-white font-bold text-sm">gler</span>
-              </div>
-              <span className="font-semibold text-gray-900 hidden sm:block">Admin Panel</span>
+      <header className="app-topbar">
+        <div className="app-topbar__left">
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="icon-button app-topbar__menu"
+            aria-label="Open filters"
+          >
+            <Menu size={18} />
+          </button>
+
+          <div className="brand-lockup">
+            <div className="brand-mark">gl</div>
+            <div>
+              <span className="brand-title">gler Admin Panel</span>
+              <span className="brand-subtitle">Operations workspace</span>
             </div>
-            
-            {/* Navigation Tabs */}
-            <nav className="hidden xl:flex space-x-6 navigation-tabs">
-              <button className="text-sm text-gray-600 hover:text-gray-900 py-2 transition-colors">
-                Service Dashboard
-              </button>
-              <button className="text-sm text-gray-600 hover:text-gray-900 py-2 transition-colors">
-                Finance Forecast
-              </button>
-              <button className="text-sm text-blue-600 font-medium py-2 border-b-2 border-blue-600">
-                Human Resources
-              </button>
-              <button className="text-sm text-gray-600 hover:text-gray-900 py-2 transition-colors">
-                Users
-              </button>
-              <button className="text-sm text-gray-600 hover:text-gray-900 py-2 transition-colors">
-                Compliances & Verification
-              </button>
-            </nav>
           </div>
 
-          {/* Right side - Notifications and User */}
-          <div className="flex items-center space-x-2 md:space-x-4">
-            {/* Notifications Dropdown */}
-            <div className="relative dropdown-container">
-              <button 
-                onClick={() => {
-                  setNotificationDropdown(!notificationDropdown);
-                  setChatDropdown(false);
-                  setProfileDropdown(false);
-                }}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors relative"
+          <nav className="app-topbar__nav" aria-label="Primary navigation">
+            {navigationItems.map((item) => (
+              <button
+                key={item}
+                className={`nav-tab ${item === 'Human Resources' ? 'nav-tab--active' : ''}`}
               >
-                <Bell size={20} />
-                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                {item}
               </button>
-              {notificationDropdown && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                  <div className="p-4 border-b border-gray-200">
-                    <h3 className="text-sm font-semibold text-gray-900">Notifications</h3>
-                  </div>
-                  <div className="p-4 text-center text-gray-500">
-                    <Bell size={24} className="mx-auto mb-2 text-gray-300" />
-                    <p className="text-sm">No notifications</p>
-                    <p className="text-xs text-gray-400 mt-1">You're all caught up!</p>
-                  </div>
-                </div>
-              )}
-            </div>
+            ))}
+          </nav>
+        </div>
 
-            {/* Chat Dropdown */}
-            <div className="relative dropdown-container">
-              <button 
-                onClick={() => {
-                  setChatDropdown(!chatDropdown);
-                  setNotificationDropdown(false);
-                  setProfileDropdown(false);
-                }}
-                className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <MessageSquare size={20} />
-              </button>
-              {chatDropdown && (
-                <div className="absolute right-0 mt-2 w-80 bg-white rounded-lg shadow-lg border border-gray-200 z-50">
-                  <div className="p-4 border-b border-gray-200">
-                    <h3 className="text-sm font-semibold text-gray-900">Messages</h3>
-                  </div>
-                  <div className="p-4 text-center text-gray-500">
-                    <MessageSquare size={24} className="mx-auto mb-2 text-gray-300" />
-                    <p className="text-sm">No messages</p>
-                    <p className="text-xs text-gray-400 mt-1">Start a conversation to see messages here</p>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Profile Dropdown */}
-            <div className="relative hidden sm:flex items-center space-x-3 dropdown-container">
-              <div 
-                onClick={() => {
-                  setProfileDropdown(!profileDropdown);
-                  setNotificationDropdown(false);
-                  setChatDropdown(false);
-                }}
-                className="flex items-center space-x-3 cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors"
-              >
-                <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
-                  <User size={16} className="text-gray-600" />
-                </div>
-                <div className="text-sm hidden md:block">
-                  <div className="font-medium text-gray-900">Lisa Smith</div>
-                  <div className="text-gray-500">London, UK</div>
-                </div>
+        <div className="app-topbar__right">
+          <div className="dropdown-container app-dropdown">
+            <button
+              className="icon-button"
+              onClick={() => {
+                setNotificationDropdown((open) => !open);
+                setChatDropdown(false);
+                setProfileDropdown(false);
+              }}
+              aria-label="Notifications"
+            >
+              <Bell size={18} />
+              <span className="icon-button__dot" />
+            </button>
+            {notificationDropdown && (
+              <div className="dropdown-panel">
+                <h3>Notifications</h3>
+                <p>No new notifications. Your onboarding queue is in sync.</p>
               </div>
-              {profileDropdown && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 z-50 top-full">
-                  <div className="py-2">
-                    <div className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-not-allowed opacity-60">
-                      Profile
-                    </div>
-                    <div className="px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 cursor-not-allowed opacity-60">
-                      Settings
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            )}
+          </div>
+
+          <div className="dropdown-container app-dropdown">
+            <button
+              className="icon-button"
+              onClick={() => {
+                setChatDropdown((open) => !open);
+                setNotificationDropdown(false);
+                setProfileDropdown(false);
+              }}
+              aria-label="Messages"
+            >
+              <MessageSquare size={18} />
+            </button>
+            {chatDropdown && (
+              <div className="dropdown-panel">
+                <h3>Messages</h3>
+                <p>No active conversations. Start from a record to begin outreach.</p>
+              </div>
+            )}
+          </div>
+
+          <div className="dropdown-container profile-trigger">
+            <button
+              className="profile-button"
+              onClick={() => {
+                setProfileDropdown((open) => !open);
+                setNotificationDropdown(false);
+                setChatDropdown(false);
+              }}
+            >
+              <div className="profile-button__avatar">
+                <User size={16} />
+              </div>
+              <div className="profile-button__meta">
+                <strong>Max Smith</strong>
+                <span>London, UK</span>
+              </div>
+            </button>
+            {profileDropdown && (
+              <div className="dropdown-panel dropdown-panel--compact">
+                <h3>Profile</h3>
+                <p>Settings and team management are mocked in this build.</p>
+              </div>
+            )}
           </div>
         </div>
       </header>
 
-      <div className="flex flex-1 min-h-0">
-        {/* Mobile sidebar overlay */}
-        {isSidebarOpen && (
-          <div 
-            className="fixed inset-0 bg-black bg-opacity-50 z-40 xl:hidden"
-            onClick={() => setIsSidebarOpen(false)}
-          ></div>
-        )}
+      <div className="app-body">
+        <div
+          className={`app-overlay ${isSidebarOpen ? 'app-overlay--visible' : ''}`}
+          onClick={() => setIsSidebarOpen(false)}
+        />
 
-        {/* Sidebar */}
-        <div className={`w-80 bg-white shadow-sm min-h-screen fixed xl:relative z-50 xl:z-auto transition-transform duration-300 xl:transform-none overflow-y-auto ${
-          isSidebarOpen ? 'translate-x-0' : '-translate-x-full xl:translate-x-0'
-        }`}>
-          <div className="p-4 md:p-6 h-full flex flex-col">
-            {/* Mobile close button */}
-            <div className="flex justify-between items-center mb-4 xl:hidden">
-              <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
-              <button onClick={() => setIsSidebarOpen(false)} className="p-2 text-gray-600 hover:text-gray-900 transition-colors">
-                <Menu size={20} />
-              </button>
+        <aside className={`app-sidebar ${isSidebarOpen ? 'app-sidebar--open' : ''}`}>
+          <div className="app-sidebar__header">
+            <div>
+              <span className="panel-eyebrow">Filters</span>
+              <h2>User Management</h2>
             </div>
-
-            {/* User Management Header */}
-            <h2 className="text-lg font-semibold text-gray-900 mb-4 hidden xl:block">User Management</h2>
-            
-            {/* Scrollable filter content */}
-            <div className="flex-1 overflow-y-auto">
-              {/* Postcode Filter */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Postcode
-                </label>
-                <input
-                  type="text"
-                  placeholder="ZIP"
-                  value={filters.postcode}
-                  onChange={(e) => handleFilterChange('postcode', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                />
-              </div>
-
-              {/* Registration Status */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Registration Status
-                </label>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
-                      checked={filters.registrationStatus.onboarded}
-                      onChange={(e) => handleFilterChange('registrationStatus.onboarded', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Onboarded</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
-                      checked={filters.registrationStatus.rejected}
-                      onChange={(e) => handleFilterChange('registrationStatus.rejected', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Rejected</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Date Registered */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Date Registered
-                </label>
-                <div className="space-y-2">
-                  <div className="date-input-container">
-                    <input
-                      type="date"
-                      value={filters.dateRange.start}
-                      onChange={(e) => handleFilterChange('dateRange.start', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    />
-                    <span className="date-placeholder">Start</span>
-                  </div>
-                  <div className="date-input-container">
-                    <input
-                      type="date"
-                      value={filters.dateRange.end}
-                      onChange={(e) => handleFilterChange('dateRange.end', e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                    />
-                    <span className="date-placeholder">End</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Vendor Type */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Vendor Type
-                </label>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
-                      checked={filters.vendorType.independent}
-                      onChange={(e) => handleFilterChange('vendorType.independent', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Independent</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
-                      checked={filters.vendorType.company}
-                      onChange={(e) => handleFilterChange('vendorType.company', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Company</span>
-                  </label>
-                </div>
-              </div>
-
-              {/* Service Offering */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Service Offering
-                </label>
-                <div className="space-y-2">
-                  <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
-                      checked={filters.serviceOffering.housekeeping}
-                      onChange={(e) => handleFilterChange('serviceOffering.housekeeping', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Housekeeping</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
-                      checked={filters.serviceOffering.windowCleaning}
-                      onChange={(e) => handleFilterChange('serviceOffering.windowCleaning', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Window Cleaning</span>
-                  </label>
-                  <label className="flex items-center">
-                    <input 
-                      type="checkbox" 
-                      checked={filters.serviceOffering.carValet}
-                      onChange={(e) => handleFilterChange('serviceOffering.carValet', e.target.checked)}
-                      className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" 
-                    />
-                    <span className="ml-2 text-sm text-gray-700">Car Valet</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-
-            {/* Fixed Filter Buttons at bottom */}
-            <div className="space-y-2 pt-4 border-t border-gray-200 bg-white">
-              <button 
-                onClick={() => showToast('Filters applied successfully!', 'success')}
-                className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 transition-colors text-sm font-medium btn-hover"
-              >
-                Filter
-              </button>
-              <button 
-                onClick={clearFilters}
-                className="w-full border border-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-50 transition-colors text-sm font-medium"
-              >
-                Clear Filters
-              </button>
-            </div>
+            <button
+              className="icon-button app-sidebar__close"
+              onClick={() => setIsSidebarOpen(false)}
+              aria-label="Close filters"
+            >
+              <X size={18} />
+            </button>
           </div>
-        </div>
-        
-        {/* Main content */}
-        <div className="flex-1 bg-white">
-          <div className="p-6 max-w-full">
-            {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 space-y-4 md:space-y-0">
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">Waitlist</h1>
-                <div className="flex space-x-4 mt-2">
-                  <button className="px-4 py-2 text-sm font-medium text-blue-600 bg-blue-50 rounded-md transition-colors">
-                    Service Providers
-                  </button>
-                  <button className="px-4 py-2 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors">
-                    Customers
-                  </button>
-                </div>
-              </div>
-              
-              {/* Search Bar */}
-              <div className="w-full md:w-80">
-                <SearchBar 
-                  globalFilter={globalFilter} 
-                  setGlobalFilter={setGlobalFilter} 
-                />
-              </div>
-            </div>
 
-            {/* Data Table */}
-            <div className="overflow-hidden">
-              <DataTable 
-                data={filteredData} 
-                globalFilter={globalFilter}
-                setGlobalFilter={setGlobalFilter}
-                onEdit={handleEdit}
+          <div className="filter-groups">
+            <section className="filter-card">
+              <label className="filter-label" htmlFor="postcode-filter">
+                Postcode
+              </label>
+              <input
+                id="postcode-filter"
+                type="text"
+                placeholder="ZIP or postcode"
+                value={filters.postcode}
+                onChange={(event) => handleFilterChange('postcode', event.target.value)}
+                className="filter-input"
               />
-            </div>
+            </section>
+
+            <section className="filter-card">
+              <header className="filter-card__header">
+                <h3>Registration Status</h3>
+                <span>{Object.values(filters.registrationStatus).filter(Boolean).length} selected</span>
+              </header>
+              <label className="filter-option">
+                <input
+                  type="checkbox"
+                  checked={filters.registrationStatus.onboarded}
+                  onChange={(event) =>
+                    handleFilterChange('registrationStatus.onboarded', event.target.checked)
+                  }
+                  className="checkbox-custom"
+                />
+                <span>Onboarded</span>
+              </label>
+              <label className="filter-option">
+                <input
+                  type="checkbox"
+                  checked={filters.registrationStatus.rejected}
+                  onChange={(event) =>
+                    handleFilterChange('registrationStatus.rejected', event.target.checked)
+                  }
+                  className="checkbox-custom"
+                />
+                <span>Rejected</span>
+              </label>
+            </section>
+
+            <section className="filter-card">
+              <header className="filter-card__header">
+                <h3>Date Registered</h3>
+                <span>Flexible range</span>
+              </header>
+              <div className="date-grid">
+                <label className="filter-label">
+                  Start
+                  <input
+                    type="date"
+                    value={filters.dateRange.start}
+                    onChange={(event) => handleFilterChange('dateRange.start', event.target.value)}
+                    className="filter-input"
+                  />
+                </label>
+                <label className="filter-label">
+                  End
+                  <input
+                    type="date"
+                    value={filters.dateRange.end}
+                    onChange={(event) => handleFilterChange('dateRange.end', event.target.value)}
+                    className="filter-input"
+                  />
+                </label>
+              </div>
+            </section>
+
+            <section className="filter-card">
+              <header className="filter-card__header">
+                <h3>Vendor Type</h3>
+                <span>{Object.values(filters.vendorType).filter(Boolean).length} selected</span>
+              </header>
+              <label className="filter-option">
+                <input
+                  type="checkbox"
+                  checked={filters.vendorType.independent}
+                  onChange={(event) =>
+                    handleFilterChange('vendorType.independent', event.target.checked)
+                  }
+                  className="checkbox-custom"
+                />
+                <span>Independent</span>
+              </label>
+              <label className="filter-option">
+                <input
+                  type="checkbox"
+                  checked={filters.vendorType.company}
+                  onChange={(event) => handleFilterChange('vendorType.company', event.target.checked)}
+                  className="checkbox-custom"
+                />
+                <span>Company</span>
+              </label>
+            </section>
+
+            <section className="filter-card">
+              <header className="filter-card__header">
+                <h3>Service Offering</h3>
+                <span>{Object.values(filters.serviceOffering).filter(Boolean).length} selected</span>
+              </header>
+              <label className="filter-option">
+                <input
+                  type="checkbox"
+                  checked={filters.serviceOffering.housekeeping}
+                  onChange={(event) =>
+                    handleFilterChange('serviceOffering.housekeeping', event.target.checked)
+                  }
+                  className="checkbox-custom"
+                />
+                <span>Housekeeping</span>
+              </label>
+              <label className="filter-option">
+                <input
+                  type="checkbox"
+                  checked={filters.serviceOffering.windowCleaning}
+                  onChange={(event) =>
+                    handleFilterChange('serviceOffering.windowCleaning', event.target.checked)
+                  }
+                  className="checkbox-custom"
+                />
+                <span>Window Cleaning</span>
+              </label>
+              <label className="filter-option">
+                <input
+                  type="checkbox"
+                  checked={filters.serviceOffering.carValet}
+                  onChange={(event) =>
+                    handleFilterChange('serviceOffering.carValet', event.target.checked)
+                  }
+                  className="checkbox-custom"
+                />
+                <span>Car Valet</span>
+              </label>
+            </section>
           </div>
-        </div>
+
+          <div className="sidebar-actions">
+            <button className="action-button action-button--primary" onClick={applyFilters}>
+              Apply filters
+            </button>
+            <button className="action-button action-button--ghost" onClick={clearFilters}>
+              Clear all
+            </button>
+          </div>
+        </aside>
+
+        <main className="app-main">
+          <section className="hero-panel">
+            <div className="hero-panel__content">
+              <span className="panel-eyebrow">Human Resources</span>
+              <h1>Waitlist</h1>
+              <p>
+                Review incoming accounts, tighten qualification decisions, and move approved
+                profiles into onboarding without leaving this queue.
+              </p>
+              <div className="segment-tabs" role="tablist" aria-label="Audience segments">
+                {audienceTabs.map((tab) => (
+                  <button
+                    key={tab.id}
+                    className={`segment-tab ${activeAudience === tab.id ? 'segment-tab--active' : ''}`}
+                    onClick={() => setActiveAudience(tab.id)}
+                  >
+                    {tab.label}
+                    <span>{audienceCounts[tab.id] || 0}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="hero-panel__actions">
+              <SearchBar globalFilter={globalFilter} setGlobalFilter={setGlobalFilter} />
+              <button className="mobile-filter-button" onClick={() => setIsSidebarOpen(true)}>
+                <SlidersHorizontal size={18} />
+                Filters
+              </button>
+            </div>
+          </section>
+
+          <section className="insight-grid">
+            {insightCards.map((card) => {
+              const Icon = card.icon;
+              return (
+                <article key={card.label} className={`insight-card insight-card--${card.tone}`}>
+                  <div className="insight-card__icon">
+                    <Icon size={18} />
+                  </div>
+                  <div>
+                    <span>{card.label}</span>
+                    <strong>{card.value}</strong>
+                    <p>{card.caption}</p>
+                  </div>
+                </article>
+              );
+            })}
+          </section>
+
+          <section className="table-stage">
+            <div className="table-stage__header">
+              <div>
+                <span className="panel-eyebrow">Queue</span>
+                <h2>{activeAudience} waitlist</h2>
+                <p>
+                  Showing {filteredData.length} of {activeAudienceRecords.length} records
+                  {activeFilterCount > 0 ? ` with ${activeFilterCount} active filters.` : '.'}
+                </p>
+              </div>
+
+              <div className="table-stage__actions">
+                <button className="action-button action-button--ghost" onClick={clearFilters}>
+                  Reset filters
+                </button>
+                <button
+                  className="action-button action-button--secondary desktop-only"
+                  onClick={() => setIsSidebarOpen(true)}
+                >
+                  Refine view
+                </button>
+              </div>
+            </div>
+
+            <DataTable data={filteredData} globalFilter={globalFilter} onEdit={openUserModal} />
+          </section>
+        </main>
       </div>
     </div>
   );
 }
 
 export default App;
+

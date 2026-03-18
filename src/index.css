@@ -1,19 +1,28 @@
-@tailwind base;
+﻿@tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-@layer base {
-  body {
-    @apply bg-gray-50 font-sans;
-  }
+:root {
+  color-scheme: light;
 }
 
-@layer components {
-  .btn-primary {
-    @apply bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md transition-colors;
-  }
-  
-  .btn-secondary {
-    @apply bg-gray-200 hover:bg-gray-300 text-gray-800 px-4 py-2 rounded-md transition-colors;
-  }
+html {
+  scroll-behavior: smooth;
 }
+
+body {
+  margin: 0;
+  min-width: 320px;
+  font-family: 'Avenir Next', 'Segoe UI', 'Helvetica Neue', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+code {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+}
+

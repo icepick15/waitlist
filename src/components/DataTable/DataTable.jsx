@@ -1,19 +1,57 @@
-import React, { useMemo, useState, useEffect } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
-  useReactTable,
+  flexRender,
   getCoreRowModel,
   getFilteredRowModel,
   getPaginationRowModel,
   getSortedRowModel,
-  flexRender,
+  useReactTable,
 } from '@tanstack/react-table';
-import { ChevronUp, ChevronDown, Edit, ChevronLeft, ChevronRight } from 'lucide-react';
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronUp,
+  Mail,
+  MapPin,
+  Phone,
+  SquarePen,
+} from 'lucide-react';
 
-const DataTable = ({ data, globalFilter, setGlobalFilter, onEdit }) => {
+const getStatusClassName = (status) => {
+  if (status === 'Onboarded') {
+    return 'status-pill status-pill--success';
+  }
+
+  if (status === 'Rejected') {
+    return 'status-pill status-pill--danger';
+  }
+
+  return 'status-pill status-pill--neutral';
+};
+
+const globalTextFilter = (row, _columnId, filterValue) => {
+  const searchableText = [
+    row.original.companyName,
+    row.original.contactName,
+    row.original.email,
+    row.original.phoneNumber,
+    row.original.postcode,
+    row.original.vendorType,
+    row.original.serviceOffering,
+    row.original.location,
+    ...(row.original.serviceOfferings || []),
+  ]
+    .join(' ')
+    .toLowerCase();
+
+  return searchableText.includes(String(filterValue ?? '').toLowerCase());
+};
+
+const DataTable = ({ data, globalFilter, onEdit }) => {
   const [sorting, setSorting] = useState([]);
   const [rowSelection, setRowSelection] = useState({});
 
-  // Define columns
   const columns = useMemo(
     () => [
       {
@@ -21,9 +59,10 @@ const DataTable = ({ data, globalFilter, setGlobalFilter, onEdit }) => {
         header: ({ table }) => (
           <input
             type="checkbox"
-            checked={table.getIsAllRowsSelected()}
-            onChange={table.getToggleAllRowsSelectedHandler()}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 checkbox-custom"
+            checked={table.getIsAllPageRowsSelected()}
+            onChange={table.getToggleAllPageRowsSelectedHandler()}
+            className="checkbox-custom"
+            aria-label="Select all rows"
           />
         ),
         cell: ({ row }) => (
@@ -31,81 +70,82 @@ const DataTable = ({ data, globalFilter, setGlobalFilter, onEdit }) => {
             type="checkbox"
             checked={row.getIsSelected()}
             onChange={row.getToggleSelectedHandler()}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500 checkbox-custom"
+            className="checkbox-custom"
+            aria-label={`Select ${row.original.companyName}`}
           />
         ),
         enableSorting: false,
         enableHiding: false,
+        size: 48,
       },
       {
         accessorKey: 'email',
         header: 'Email',
-        cell: info => info.getValue(),
+        cell: ({ row }) => (
+          <div className="table-identity-cell">
+            <strong>{row.original.companyName}</strong>
+            <span>{row.original.email}</span>
+          </div>
+        ),
       },
       {
         accessorKey: 'phoneNumber',
         header: 'Phone Number',
-        cell: info => info.getValue(),
+        cell: ({ row }) => (
+          <div className="table-stack-cell">
+            <span>{row.original.phoneNumber}</span>
+            <small>{row.original.contactName}</small>
+          </div>
+        ),
       },
       {
         accessorKey: 'postcode',
         header: 'Postcode',
-        cell: info => info.getValue(),
       },
       {
         accessorKey: 'vendorType',
         header: 'Vendor Type',
-        cell: info => info.getValue(),
       },
       {
         accessorKey: 'serviceOffering',
         header: 'Service Offering',
-        cell: info => info.getValue(),
+        cell: ({ row }) => (
+          <div className="table-stack-cell">
+            <span>{row.original.serviceOffering}</span>
+            <small>{row.original.serviceOfferings.length} services attached</small>
+          </div>
+        ),
       },
       {
         accessorKey: 'signupDate',
         header: 'Signup Date',
-        cell: info => info.getValue(),
       },
       {
         accessorKey: 'status',
         header: 'Status',
-        cell: info => {
-          const status = info.getValue();
-          if (status === '-') {
-            return <span className="text-gray-500">-</span>;
-          }
-          return (
-            <span
-              className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                status === 'Onboarded'
-                  ? 'bg-green-100 text-green-800'
-                  : status === 'Rejected'
-                  ? 'bg-red-100 text-red-800'
-                  : 'bg-gray-100 text-gray-800'
-              }`}
-            >
-              {status}
-            </span>
-          );
-        },
+        cell: ({ row }) => (
+          <span className={getStatusClassName(row.original.status)}>
+            {row.original.invitationState}
+          </span>
+        ),
       },
       {
         id: 'actions',
         header: 'Actions',
         cell: ({ row }) => (
           <button
-            onClick={() => onEdit && onEdit(row.original)}
-            className="text-blue-600 hover:text-blue-800 transition-colors p-1 btn-hover"
-            title="Edit"
+            onClick={() => onEdit(row.original)}
+            className="table-action-button"
+            title="Open record"
+            aria-label={`Open ${row.original.companyName}`}
           >
-            <Edit size={16} />
+            <SquarePen size={16} />
           </button>
         ),
         enableSorting: false,
       },
     ],
-    []
+    [onEdit]
   );
 
   const table = useReactTable({
@@ -116,135 +156,200 @@ const DataTable = ({ data, globalFilter, setGlobalFilter, onEdit }) => {
       globalFilter,
       rowSelection,
     },
+    enableRowSelection: true,
     onSortingChange: setSorting,
-    onGlobalFilterChange: setGlobalFilter,
     onRowSelectionChange: setRowSelection,
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    globalFilterFn: globalTextFilter,
     initialState: {
       pagination: {
-        pageSize: 10,
+        pageSize: 8,
       },
     },
   });
 
+  const pageRows = table.getRowModel().rows;
+  const pageIndex = table.getState().pagination.pageIndex;
+  const pageCount = table.getPageCount();
+  const totalRows = table.getFilteredRowModel().rows.length;
+  const selectedRows = table.getFilteredSelectedRowModel().rows.length;
+  const pageStart = totalRows === 0 ? 0 : pageIndex * table.getState().pagination.pageSize + 1;
+  const pageEnd = Math.min(
+    (pageIndex + 1) * table.getState().pagination.pageSize,
+    totalRows
+  );
+
+  const pageNumbers = Array.from({ length: pageCount }, (_, index) => index).slice(
+    Math.max(0, pageIndex - 2),
+    Math.max(0, pageIndex - 2) + 5
+  );
+
   return (
-    <div className="bg-white w-full h-full flex flex-col">
-      {/* Table - takes most available space */}
-      <div className="flex-1 overflow-auto border border-gray-200 rounded-lg">
-        <table className="w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50 sticky top-0 z-10">
-            {table.getHeaderGroups().map(headerGroup => (
-              <tr key={headerGroup.id}>
-                {headerGroup.headers.map(header => (
-                  <th
-                    key={header.id}
-                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100 transition-colors"
-                    onClick={header.column.getToggleSortingHandler()}
-                  >
-                    <div className="flex items-center space-x-1">
-                      <span>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </span>
-                      {header.column.getCanSort() && (
-                        <span className="flex flex-col">
-                          <ChevronUp
-                            size={12}
-                            className={
-                              header.column.getIsSorted() === 'asc'
-                                ? 'text-blue-600'
-                                : 'text-gray-400'
-                            }
-                          />
-                          <ChevronDown
-                            size={12}
-                            className={
-                              header.column.getIsSorted() === 'desc'
-                                ? 'text-blue-600'
-                                : 'text-gray-400'
-                            }
-                          />
-                        </span>
-                      )}
-                    </div>
-                  </th>
-                ))}
-              </tr>
-            ))}
-          </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
-            {table.getRowModel().rows.map(row => (
-              <tr key={row.id} className="hover:bg-gray-50 transition-colors">
-                {row.getVisibleCells().map(cell => (
-                  <td key={cell.id} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
+    <div className="waitlist-table-shell">
+      <div className="waitlist-table-toolbar">
+        <div>
+          <strong>{totalRows}</strong>
+          <span>results in view</span>
+        </div>
+        <div>
+          <strong>{selectedRows}</strong>
+          <span>selected on this filtered set</span>
+        </div>
       </div>
 
-      {/* Pagination */}
-      <div className="flex items-center justify-between px-6 py-4 bg-white border-x border-b border-gray-200 rounded-b-lg">
-        <div className="flex items-center space-x-2">
-          <span className="text-sm text-gray-700">
-            Showing {table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1} to{' '}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize,
-              table.getFilteredRowModel().rows.length
-            )}{' '}
-            of {table.getFilteredRowModel().rows.length} results
-          </span>
+      <div className="waitlist-table-desktop">
+        <div className="table-container">
+          <table className="waitlist-table">
+            <thead>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <tr key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <th
+                      key={header.id}
+                      onClick={header.column.getCanSort() ? header.column.getToggleSortingHandler() : undefined}
+                      className={header.column.getCanSort() ? 'is-sortable' : ''}
+                    >
+                      <div className="table-header-label">
+                        <span>
+                          {header.isPlaceholder
+                            ? null
+                            : flexRender(header.column.columnDef.header, header.getContext())}
+                        </span>
+                        {header.column.getCanSort() && (
+                          <span className="table-sort-icons">
+                            <ChevronUp
+                              size={12}
+                              className={header.column.getIsSorted() === 'asc' ? 'is-active' : ''}
+                            />
+                            <ChevronDown
+                              size={12}
+                              className={header.column.getIsSorted() === 'desc' ? 'is-active' : ''}
+                            />
+                          </span>
+                        )}
+                      </div>
+                    </th>
+                  ))}
+                </tr>
+              ))}
+            </thead>
+            <tbody>
+              {pageRows.length > 0 ? (
+                pageRows.map((row) => (
+                  <tr key={row.id}>
+                    {row.getVisibleCells().map((cell) => (
+                      <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
+                    ))}
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={columns.length}>
+                    <div className="empty-state">
+                      <strong>No matches found</strong>
+                      <p>Adjust the filters or search terms to widen the queue.</p>
+                    </div>
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
-        
-        <div className="flex items-center space-x-2">
+      </div>
+
+      <div className="waitlist-mobile-list">
+        {pageRows.length > 0 ? (
+          pageRows.map((row) => {
+            const user = row.original;
+            return (
+              <article key={row.id} className="mobile-record-card">
+                <div className="mobile-record-card__top">
+                  <label className="mobile-record-card__selector">
+                    <input
+                      type="checkbox"
+                      checked={row.getIsSelected()}
+                      onChange={row.getToggleSelectedHandler()}
+                      className="checkbox-custom"
+                    />
+                    <span>{user.companyName}</span>
+                  </label>
+                  <span className={getStatusClassName(user.status)}>{user.invitationState}</span>
+                </div>
+
+                <div className="mobile-record-card__body">
+                  <div className="mobile-record-card__row">
+                    <Mail size={15} />
+                    <span>{user.email}</span>
+                  </div>
+                  <div className="mobile-record-card__row">
+                    <Phone size={15} />
+                    <span>{user.phoneNumber}</span>
+                  </div>
+                  <div className="mobile-record-card__row">
+                    <MapPin size={15} />
+                    <span>
+                      {user.postcode} - {user.location}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mobile-record-card__meta">
+                  <span>{user.vendorType}</span>
+                  <span>{user.serviceOffering}</span>
+                  <span>{user.signupDate}</span>
+                </div>
+
+                <button className="mobile-record-card__action" onClick={() => onEdit(user)}>
+                  Open details
+                </button>
+              </article>
+            );
+          })
+        ) : (
+          <div className="empty-state empty-state--card">
+            <strong>No matches found</strong>
+            <p>Adjust the filters or search terms to widen the queue.</p>
+          </div>
+        )}
+      </div>
+
+      <div className="table-pagination">
+        <div className="table-pagination__summary">
+          Showing {pageStart}-{pageEnd} of {totalRows}
+        </div>
+
+        <div className="table-pagination__controls">
           <button
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
-            className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="pagination-button"
+            aria-label="Previous page"
           >
-            <ChevronLeft size={20} />
+            <ChevronLeft size={16} />
           </button>
-          
-          {/* Page numbers */}
-          <div className="flex space-x-1">
-            {Array.from({ length: Math.min(5, table.getPageCount()) }, (_, i) => {
-              const pageIndex = table.getState().pagination.pageIndex;
-              const pageNumber = i + Math.max(0, pageIndex - 2);
-              
-              if (pageNumber >= table.getPageCount()) return null;
-              
-              return (
-                <button
-                  key={pageNumber}
-                  onClick={() => table.setPageIndex(pageNumber)}
-                  className={`px-3 py-1 text-sm rounded transition-colors ${
-                    pageIndex === pageNumber
-                      ? 'bg-blue-600 text-white'
-                      : 'text-gray-700 hover:bg-gray-100'
-                  }`}
-                >
-                  {pageNumber + 1}
-                </button>
-              );
-            })}
+
+          <div className="pagination-pages">
+            {pageNumbers.map((number) => (
+              <button
+                key={number}
+                onClick={() => table.setPageIndex(number)}
+                className={`pagination-page ${pageIndex === number ? 'pagination-page--active' : ''}`}
+              >
+                {number + 1}
+              </button>
+            ))}
           </div>
-          
+
           <button
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
-            className="p-2 text-gray-400 hover:text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="pagination-button"
+            aria-label="Next page"
           >
-            <ChevronRight size={20} />
+            <ChevronRight size={16} />
           </button>
         </div>
       </div>
@@ -253,3 +358,4 @@ const DataTable = ({ data, globalFilter, setGlobalFilter, onEdit }) => {
 };
 
 export default DataTable;
+

@@ -1,8 +1,10 @@
-import { render, screen } from '@testing-library/react';
+﻿import { render, screen } from '@testing-library/react';
 import App from './App';
 
-test('renders learn react link', () => {
+test('renders waitlist dashboard heading', () => {
   render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+
+  expect(screen.getByRole('heading', { name: /waitlist/i })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: /service providers/i })).toBeInTheDocument();
 });
+
