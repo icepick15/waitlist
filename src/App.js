@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import './App.css';
 import DataTable from './components/DataTable/DataTable';
 import SearchBar from './components/SearchBar/SearchBar';
