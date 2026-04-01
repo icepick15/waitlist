@@ -81,12 +81,7 @@ const DataTable = ({ data, globalFilter, onEdit }) => {
       {
         accessorKey: 'email',
         header: 'Email',
-        cell: ({ row }) => (
-          <div className="table-identity-cell">
-            <strong>{row.original.companyName}</strong>
-            <span>{row.original.email}</span>
-          </div>
-        ),
+        cell: ({ row }) => <span>{row.original.email}</span>,
       },
       {
         accessorKey: 'phoneNumber',
