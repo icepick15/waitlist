@@ -56,33 +56,14 @@ body { background: var(--bg); }
 .brand-lockup {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
   white-space: nowrap;
+  flex-shrink: 0;
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 34px;
+.brand-logo {
+  display: block;
+  width: auto;
   height: 34px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #1d4ed8 0%, #1e3a8a 100%);
-  color: #fff;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: -0.02em;
-}
-
-.brand-mark span {
-  color: #facc15;
-  font-size: 0.6rem;
-  vertical-align: super;
-}
-
-.brand-title {
-  font-size: 0.88rem;
-  font-weight: 700;
-  color: var(--text);
 }
 
 .brand-subtitle { display: none; }

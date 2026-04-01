@@ -360,10 +360,7 @@ function App() {
           </button>
 
           <div className="brand-lockup">
-            <div className="brand-mark">
-              gl<span>+</span>
-            </div>
-            <span className="brand-title">Admin Panel</span>
+            <img className="brand-logo" src="/gler.svg" alt="Gler" />
           </div>
 
           <nav className="app-topbar__nav" aria-label="Primary navigation">
