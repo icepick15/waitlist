@@ -168,6 +168,22 @@ function App() {
     });
   };
 
+  const handleDateRangeChange = (boundary, value) => {
+    setFilters((previousFilters) => {
+      const nextDateRange = { ...previousFilters.dateRange, [boundary]: value };
+
+      if (boundary === 'start' && value && nextDateRange.end && value > nextDateRange.end) {
+        nextDateRange.end = value;
+      }
+
+      if (boundary === 'end' && value && nextDateRange.start && value < nextDateRange.start) {
+        nextDateRange.start = value;
+      }
+
+      return { ...previousFilters, dateRange: nextDateRange };
+    });
+  };
+
   const applyFilters = () => {
     setIsSidebarOpen(false);
     showToast('Filters applied to the current waitlist view.');
@@ -495,42 +511,33 @@ function App() {
 
             {/* Date Registered */}
             <section className="filter-card">
-              <span className="filter-label">Date Registered</span>
-              <div className="date-grid">
-                <div className="date-field-wrap">
-                  <div className="date-field-label-row">
-                    <span className="date-field-label-text">Date</span>
-                    <span className="date-field-label-badge">Date</span>
-                  </div>
-                  <div className="date-input-wrap">
-                    <input
-                      type="date"
-                      value={filters.dateRange.start}
-                      onChange={(event) =>
-                        handleFilterChange('dateRange.start', event.target.value)
-                      }
-                      placeholder="Start"
-                    />
-                  </div>
-                  <span className="date-placeholder">MM/DD/YYYY</span>
-                </div>
-                <div className="date-field-wrap">
-                  <div className="date-field-label-row">
-                    <span className="date-field-label-text">Date</span>
-                    <span className="date-field-label-badge">Date</span>
-                  </div>
-                  <div className="date-input-wrap">
-                    <input
-                      type="date"
-                      value={filters.dateRange.end}
-                      onChange={(event) =>
-                        handleFilterChange('dateRange.end', event.target.value)
-                      }
-                      placeholder="End"
-                    />
-                  </div>
-                  <span className="date-placeholder">MM/DD/YYYY</span>
-                </div>
+              <span className="filter-label filter-label--compact">Date Registered</span>
+              <p className="filter-help">
+                Choose a registration window. Leave one side empty for an open-ended range.
+              </p>
+              <div className="date-range">
+                <label className="date-range-field" htmlFor="date-registered-from">
+                  <span className="date-range-label">From</span>
+                  <input
+                    id="date-registered-from"
+                    className="filter-input filter-input--date"
+                    type="date"
+                    value={filters.dateRange.start}
+                    max={filters.dateRange.end || undefined}
+                    onChange={(event) => handleDateRangeChange('start', event.target.value)}
+                  />
+                </label>
+                <label className="date-range-field" htmlFor="date-registered-to">
+                  <span className="date-range-label">To</span>
+                  <input
+                    id="date-registered-to"
+                    className="filter-input filter-input--date"
+                    type="date"
+                    value={filters.dateRange.end}
+                    min={filters.dateRange.start || undefined}
+                    onChange={(event) => handleDateRangeChange('end', event.target.value)}
+                  />
+                </label>
               </div>
             </section>
 
